@@ -1,0 +1,29 @@
+{
+  "name": "jscad-vector-fonts",
+  "version": "0.0.1",
+  "license": "MIT",
+  "description": "Vectors fonts and serializer for the @jscad projet",
+  "repository": "https://github.com/lautr3k/jscad-vector-fonts",
+  "main": "./serializer",
+  "scripts": {
+    "serialize": "node ./serializer"
+  },
+  "keywords": [
+    "jscad",
+    "vector",
+    "fonts"
+  ],
+  "contributors": [
+    {
+      "name": "Sébastien Mischler (skarab|Lautr3k)",
+      "url": "https://github.com/lautr3k"
+    }
+  ],
+  "devDependencies": {
+    "@jscad/csg": "^0.5.4",
+    "camelcase": "^5.0.0",
+    "commander": "^2.15.1",
+    "glob": "^7.1.2",
+    "opentype.js": "^0.8.0"
+  }
+}
