@@ -35,13 +35,12 @@ A serializer is provided in this repository, which allows you to serialize your 
 ### Installation
 ```
 npm install
-npm run serialize
 ```
 
 ### Usages
 
 ```
-npm run serialize
+npm run serialize [-- params]
 ```
 By default, the script serializes all the fonts found in the `./fonts/opentype directory` to the `./fonts/jscad directory`.
 Type `npm run serialize -- -h` for more options...
