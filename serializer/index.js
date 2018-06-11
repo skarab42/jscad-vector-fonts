@@ -67,7 +67,7 @@ files.forEach(file => {
   relativePath = relativePath.replace(/\.(ttf|otf|woff|woff2)$/, '')
   relativePath = camelCase(relativePath)
   fontName = path.basename(relativePath)
-  relativePath += '.jscad'
+  relativePath += '.js'
   outputFile = path.join(outputPath, relativePath)
   fileExists = fs.existsSync(outputFile)
 
@@ -83,7 +83,13 @@ files.forEach(file => {
       fs.unlinkSync(outputFile)
     }
 
-    font = `${fontName}Font = function () { return ${font} }`
+    font = font.replace(/\s/g, '')
+    font = `function ${fontName}Font () { return ${font} }
+
+if (typeof module === 'object' && module.exports) {
+  module.exports = ${fontName}Font
+}
+`
 
     makeDirectory(outputFile)
     writeFile(outputFile, font)
