@@ -9,7 +9,7 @@ const glob = require('glob')
 const fs = require('fs')
 
 let inputPath = './fonts/opentype/'
-let outputPath = './fonts/jscad/'
+let outputPath = './fonts/vector/'
 
 program
   .option('-i, --input-path   <path>', 'path to a directory containing some Opentype font files')
