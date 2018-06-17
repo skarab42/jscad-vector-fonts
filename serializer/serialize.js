@@ -1,113 +1,73 @@
 const opentype = require('opentype.js')
+const camelCase = require('camelcase')
 const { CSG } = require('@jscad/csg')
 
-let skippedPoints = 0
-
-module.exports = function (options, file) {
-  if (typeof options === 'string') {
-    file = options
-    options = null
-  }
-
+function serialize (options, file) {
+  // merge defauls and user settings
   let settings = Object.assign({
     fontSize: 50,
     decimals: 0,
-    replace: false
+    replace: false,
+    formatName
   }, options || {})
 
+  // get the opentype.js font object
   const font = opentype.loadSync(file)
+
+  // get the font name
+  const name = settings.formatName(font.names.fullName.en)
+
+  // create output payload
+  let output = {
+    file, settings, font, name, warnings: [], errors: [], json: ''
+  }
+
+  // create output data
+  let data = [ `height: ${settings.fontSize}` ]
+  let skippedPoints = 0
+
+  // for each glyphs
   const glyphs = font.glyphs.glyphs
   const decimals = settings.decimals
-  const glyphIndex = font.charToGlyphIndex('w')
-  const glyphTest = font.glyphs.get(glyphIndex)
-  const glyphMetrics = glyphTest.getMetrics()
-  const sxHeight = glyphMetrics.yMax - glyphMetrics.yMin
-  const scale = settings.fontSize / sxHeight
+  const glyphMetrics = font.glyphs.get(font.charToGlyphIndex('w')).getMetrics()
+  const scale = settings.fontSize / (glyphMetrics.yMax - glyphMetrics.yMin)
   const y = -glyphMetrics.yMin
 
-  let id = null
-  let glyph = null
-  let paths = null
-  let advanceWidth = null
-  let json = []
-
   for (id in glyphs) {
-    glyph = glyphs[id]
+    const glyph = glyphs[id]
+    let paths = null
+
     if (glyph.unicode) {
-      paths = parsePath(glyph.path)
-      paths = formatPaths({ scale, decimals, y }, paths)
-      advanceWidth = Math.round(glyph.advanceWidth * scale)
-      json.push(`  ${glyph.unicode}:[${advanceWidth},${paths}]`)
+      try {
+        const paths = formatPaths({ decimals, scale, y }, parsePath(glyph.path))
+        const advanceWidth = Math.round(glyph.advanceWidth * scale)
+        data.push(`  ${glyph.unicode}: [ ${advanceWidth}, ${paths.paths} ]`)
+        skippedPoints += paths.skippedPoints
+      } catch (error) {
+        output.errors.push(error)
+      }
     }
   }
 
   if (skippedPoints) {
-    console.warn(`[ WARNING ] skipped ${skippedPoints} duplicate points`)
-    skippedPoints = 0
+    output.warnings.push(`skipped ${skippedPoints} duplicate points`)
   }
 
-  json = json.join(',\n')
-  json = `{\n  height:${settings.fontSize},\n${json}\n}`
+  // format output json
+  data = data.join(',\n')
+  output.json = `{\n  ${data}\n}`
 
-  return json
+  // return output payload
+  return output
 }
 
-function formatPath (options, path) {
-  if (options instanceof opentype.Path) {
-    path = options
-    options = null
-  }
-
-  let settings = Object.assign({
-    scale: 1,
-    decimals: 0,
-    x: 0, y: 0
-  }, options || {})
-
-  const decimals = settings.decimals
-  const scale = settings.scale
-  const points = path.points
-
-  let lastPoint = null
-  let point = null
-  let output = []
-  let [x, y] = []
-
-  for (let i = 0, il = points.length; i < il; i++) {
-    point = points[i]
-    x = +((point._x + settings.x) * scale)
-    y = -((point._y + settings.y) * scale)
-    point = [ x.toFixed(decimals), y.toFixed(decimals) ]
-    if (lastPoint && lastPoint[0] === point[0] && lastPoint[1] === point[1]) {
-      skippedPoints++
-      continue
-    }
-    lastPoint = point
-    output.push(point)
-  }
-
-  return output.join(',')
+// format/clean font name
+function formatName (name) {
+  return camelCase(name).replace(/^([0-9])/, '_$1').replace(/Normal$/, '')
 }
 
-function formatPaths (options, paths) {
-  if (Array.isArray(options)) {
-    paths = options
-    options = null
-  }
-
-  for (let i = 0, il = paths.length; i < il; i++) {
-    paths[i] = formatPath(options, paths[i])
-  }
-
-  return paths.join(',,')
-}
-
-function parsePath (options, opentypePath) {
-  if (options instanceof opentype.Path) {
-    opentypePath = options
-    options = null
-  }
-
+// parse font path
+function parsePath (opentypePath) {
   const commands = opentypePath.commands
 
   let command = null
@@ -119,33 +79,87 @@ function parsePath (options, opentypePath) {
 
     switch (command.type) {
       case 'M': // new path
-      path = new CSG.Path2D([[command.x, -command.y]], false)
-      break
+        path = new CSG.Path2D([[command.x, -command.y]], false)
+        break
       case 'L': // line to
-      path = path.appendPoint([command.x, -command.y])
-      break
+        path = path.appendPoint([command.x, -command.y])
+        break
       case 'Q': // absolute quadratic Bézier
-      path = path.appendBezier([
-        [command.x1, -command.y1],
-        [command.x1, -command.y1],
-        [command.x, -command.y]
-      ])
-      break
+        path = path.appendBezier([
+          [command.x1, -command.y1],
+          [command.x1, -command.y1],
+          [command.x, -command.y]
+        ])
+        break
       case 'C': // absolute cubic Bézier
-      path = path.appendBezier([
-        [command.x1, -command.y1],
-        [command.x2, -command.y2],
-        [command.x, -command.y]
-      ])
-      break
+        path = path.appendBezier([
+          [command.x1, -command.y1],
+          [command.x2, -command.y2],
+          [command.x, -command.y]
+        ])
+        break
       case 'Z': // end of path
-      paths.push(path)
-      break
+        paths.push(path)
+        break
       default:
-      console.warn('[ WARNING ] Unknow PATH command [' + command.type + ']')
-      break
+        throw new Error('Unknow PATH command [' + command.type + ']')
+        break
     }
   }
 
   return paths
 }
+
+function formatPath (options, path) {
+  let settings = Object.assign({
+    scale: 1,
+    decimals: 0,
+    x: 0,
+    y: 0
+  }, options || {})
+
+  let output = { points: [], skippedPoints: 0 }
+
+  const decimals = settings.decimals
+  const scale = settings.scale
+  const points = path.points
+
+  let lastPoint = null
+  let point = null
+  let [x, y] = []
+
+  for (let i = 0, il = points.length; i < il; i++) {
+    point = points[i]
+    x = +((point._x + settings.x) * scale)
+    y = -((point._y + settings.y) * scale)
+    point = [ x.toFixed(decimals), y.toFixed(decimals) ]
+
+    if (lastPoint && lastPoint[0] === point[0] && lastPoint[1] === point[1]) {
+      output.skippedPoints++
+      continue
+    }
+
+    lastPoint = point
+    output.points.push(point)
+  }
+
+  output.points = output.points.join(',')
+
+  return output
+}
+
+function formatPaths (options, paths) {
+  let output = { paths: [], skippedPoints: 0 }
+
+  for (let i = 0, il = paths.length; i < il; i++) {
+    const path = formatPath(options, paths[i])
+    output.skippedPoints += path.skippedPoints
+    output.paths.push(path.points)
+  }
+
+  output.paths = output.paths.join(',,')
+
+  return output
+}
+
+module.exports = serialize
