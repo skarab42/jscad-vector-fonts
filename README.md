@@ -1,21 +1,21 @@
 # Vectors fonts and serializer for the @jscad projet
 
-## Using jscad fonts
+## Using vector fonts as jscad module
 
-Download one or more fonts from the [fonts/jscad](fonts/jscad) directory.
-Include the font file in your project like any other module.
-To access the font object simply add the `Font()` suffix to the font name and call it.
+1. Download one or more fonts from the [fonts/vector](fonts/vector) directory.
+2. Include the font file in your project like any other module.
+3. To access the font object simply add the `Font` suffix to the font name.
 
 ```javascript
 // Include the font file in your project like any other module.
-include('fonts/CamBamStick1.jscad');
+include('fonts/CamBamStick1.js');
 
 function main (params) {
-  let height = 20;               // text height (xHeight)
-  let extrudeOffset = 2;         // extrusion offset
-  let font = CamBamStick1Font(); // return the font object (! NOTE the Font() suffix)
+  let height = 20;             // text height (xHeight)
+  let extrudeOffset = 2;       // extrusion offset
+  let font = CamBamStick1Font; // font object (! NOTE the "Font" suffix)
   let text = vectorText({ font, height, extrudeOffset }, 'OpenJSCAD');
-  
+
   return csgFromSegments(extrudeOffset, text);
 }
 
@@ -28,7 +28,14 @@ function csgFromSegments (extrudeOffset, segments) {
 }
 ```
 
-## Serialize jscad fonts
+## Using vector fonts as node module
+
+```javascript
+const myFont = require('fonts/CamBamStick1');
+const myText = vectorText({ font: myFont }, 'OpenJSCAD');
+```
+
+## Serialize vector fonts
 
 A serializer is provided in this repository, which allows you to serialize your own fonts. You will have to find fonts called single-line, if you do not know what it is I refer you to [this page](http://imajeenyus.com/computer/20150110_single_line_fonts/index.shtml) (most of the fonts proposed here come from there).
 
@@ -42,7 +49,7 @@ npm install
 ```
 npm run serialize [-- params]
 ```
-By default, the script serializes all the fonts found in the `./fonts/opentype directory` to the `./fonts/jscad directory`.
+By default, the script serializes all the fonts found in the `./fonts/opentype directory` to the `./fonts/vector directory`.
 Type `npm run serialize -- -h` for more options...
 
 ```

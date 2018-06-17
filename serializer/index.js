@@ -84,7 +84,7 @@ files.forEach(file => {
     }
 
     font = font.replace(/\s/g, '')
-    font = `function ${fontName}Font () { return ${font} }
+    font = `${fontName}Font = ${font}
 
 if (typeof module === 'object' && module.exports) {
   module.exports = ${fontName}Font
