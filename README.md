@@ -8,12 +8,12 @@
 
 ```javascript
 // Include the font file in your project like any other module.
-include('fonts/CamBamStick1.js');
+include('fonts/camBamStick1.js');
 
 function main (params) {
   let height = 20;             // text height (xHeight)
   let extrudeOffset = 2;       // extrusion offset
-  let font = CamBamStick1Font; // font object (! NOTE the "Font" suffix)
+  let font = camBamStick1Font; // font object (! NOTE the "Font" suffix)
   let text = vectorText({ font, height, extrudeOffset }, 'OpenJSCAD');
 
   return csgFromSegments(extrudeOffset, text);
@@ -31,7 +31,7 @@ function csgFromSegments (extrudeOffset, segments) {
 ## Using vector fonts as node module
 
 ```javascript
-const myFont = require('fonts/CamBamStick1');
+const myFont = require('fonts/camBamStick1');
 const myText = vectorText({ font: myFont }, 'OpenJSCAD');
 ```
 
