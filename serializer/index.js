@@ -2,6 +2,7 @@
 const { name, version } = require('../package.json')
 const { writeFile } = require('./fs-helpers')
 const serialize = require('./serialize')
+const example = require('./example')
 const camelCase = require('camelcase')
 const program = require('commander')
 const path = require('path')
@@ -65,6 +66,9 @@ if (!filesCount) {
 console.log('Files found:', filesCount)
 console.log()
 
+// font names
+let fontNames = []
+
 // process files found
 files.forEach(file => {
   // serialize the font file
@@ -74,6 +78,7 @@ files.forEach(file => {
   let outputFile = path.join(outputPath, `${font.name}.js`)
   let fileExists = fs.existsSync(outputFile)
 
+  fontNames.push(font.name)
   console.log('>', font.name)
 
   if (!replace && fileExists) {
@@ -105,6 +110,13 @@ if (typeof module === 'object' && module.exports) {
     writeFile(outputFile, fontModule)
   }
 })
+
+// create example file
+if (fontNames.length) {
+  const fontPath = path.basename(outputPath)
+  const examplePath = path.dirname(outputPath)
+  writeFile(`${ examplePath }/example.jscad`, example(fontNames, fontPath))
+}
 
 // format/clean font name
 function formatName (name) {
